@@ -14,7 +14,7 @@ One command. No API keys. Runs on your laptop.
 ![Streamlit](https://img.shields.io/badge/dashboard-Streamlit-FF4B4B)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-![Crypto Pulse demo](demo.gif)
+![Crypto Pulse demo](Demo.gif)
 
 </div>
 
