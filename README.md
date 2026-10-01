@@ -14,6 +14,7 @@ One command. No API keys. Runs on your laptop.
 ![Streamlit](https://img.shields.io/badge/dashboard-Streamlit-FF4B4B)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+![Crypto Pulse demo](demo.gif)
 
 </div>
 
@@ -137,7 +138,7 @@ Contributions are welcome. Good first issues:
 
 ## Disclaimer
 
-This is an educational data engineering project, not a trading tool and not financial advice. A price gap between exchanges is not free money: fees, withdrawal times and slippage usually eat it. Market data comes from the public Coinbase Exchange and Kraken WebSocket APIs; check each exchange's terms before using it for anything beyond personal projects.Don't lose your money. I warned you guys. 
+This is an educational data engineering project, not a trading tool and not financial advice. A price gap between exchanges is not free money: fees, withdrawal times and slippage usually eat it. Market data comes from the public Coinbase Exchange and Kraken WebSocket APIs; check each exchange's terms before using it for anything beyond personal projects. Don't lose your money. I warned you guys. 
 
 ## License
 
