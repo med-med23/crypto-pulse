@@ -1,0 +1,106 @@
+name: crypto-pulse
+
+x-kafka-env: &kafka-env
+  KAFKA_BOOTSTRAP: redpanda:9092
+  KAFKA_TOPIC: crypto.trades
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: crypto
+      POSTGRES_PASSWORD: crypto
+      POSTGRES_DB: crypto
+    ports:
+      - "5433:5432"   # 5433 on your machine to avoid clashing with a local Postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crypto -d crypto"]
+      interval: 5s
+      retries: 20
+
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --mode dev-container
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 5s
+      retries: 30
+
+  console:
+    image: redpandadata/console:v2.7.2
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8081:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  producer:
+    build: ./ingestion
+    command: python producer.py
+    environment:
+      <<: *kafka-env
+      SYMBOLS: ${SYMBOLS:-BTC,ETH,SOL,PAXG}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  consumer:
+    build: ./ingestion
+    command: python consumer.py
+    environment:
+      <<: *kafka-env
+      DATABASE_URL: postgresql://crypto:crypto@postgres:5432/crypto
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  airflow:
+    image: apache/airflow:2.10.5-python3.11
+    command: standalone
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://crypto:crypto@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      AIRFLOW_CONN_CRYPTO_DB: postgresql://crypto:crypto@postgres:5432/crypto
+      CRYPTO_WHALE_USD: ${WHALE_USD:-100000}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    environment:
+      DATABASE_URL: postgresql+psycopg2://crypto:crypto@postgres:5432/crypto
+      WHALE_USD: ${WHALE_USD:-100000}
+    ports:
+      - "8501:8501"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
